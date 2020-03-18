@@ -16,12 +16,13 @@ namespace HorizonSummer
             uint checksum = 0;
             if (size > 3)
             {
-                for (var i = 0; i < (size / 4); i++, offset += 4)
+                for (var i = 0; i < (size / 4); i++)
                 {
                     var val = BitConverter.ToUInt32(data, offset);
                     checksum ^= Murmur32_Scramble(val);
                     checksum = (checksum >> 19) | (checksum << 13);
                     checksum = checksum * 5 + 0xE6546B64;
+                    offset += 4;
                 }
             }
 

@@ -8,6 +8,8 @@ namespace HorizonSummer.ConsoleApp
         private const int MAIN_SAVE_SIZE = 0xAC0938;
         private const int PERSONAL_SAVE_SIZE = 0x6BC50;
         private const int POSTBOX_SAVE_SIZE = 0xB44580;
+        private const int PHOTO_STUDIO_ISLAND_SIZE = 0x263B4;
+        private const int PROFILE_SIZE = 0x69508;
 
         static void Main(string[] args)
         {
@@ -67,10 +69,24 @@ namespace HorizonSummer.ConsoleApp
                         break;
                     }
 
+                case PHOTO_STUDIO_ISLAND_SIZE:
+                    {
+                        Console.WriteLine("photo_studio_island.dat detected!");
+                        UpdateAndPrint(data, 0x100, 0x104, 0x262B0);
+                        break;
+                    }
+
+                case PROFILE_SIZE:
+                    {
+                        Console.WriteLine("profile.dat detected!");
+                        UpdateAndPrint(data, 0x100, 0x104, 0x69404);
+                        break;
+                    }
+
                 default:
                     {
                         Console.WriteLine("The file supplied isn't supported!");
-                        Console.WriteLine("Supported Files:\n\tmain.dat\n\tpersonal.dat\n\tpostbox.dat");
+                        Console.WriteLine("Supported Files:\n\tmain.dat\n\tpersonal.dat\n\tpostbox.dat\n\tphoto_island_studio.dat\n\tprofile.dat");
                         Console.WriteLine("Supplied files must first be decrypted via HorizonCrypt.");
                         Console.ReadLine();
                         return;
