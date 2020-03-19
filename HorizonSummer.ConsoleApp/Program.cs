@@ -5,12 +5,6 @@ namespace HorizonSummer.ConsoleApp
 {
     internal class Program
     {
-        private const int MAIN_SAVE_SIZE = 0xAC0938;
-        private const int PERSONAL_SAVE_SIZE = 0x6BC50;
-        private const int POSTBOX_SAVE_SIZE = 0xB44580;
-        private const int PHOTO_STUDIO_ISLAND_SIZE = 0x263B4;
-        private const int PROFILE_SIZE = 0x69508;
-
         static void Main(string[] args)
         {
             if (args.Length < 1)
@@ -27,70 +21,48 @@ namespace HorizonSummer.ConsoleApp
             }
 
             var data = File.ReadAllBytes(args[0]);
-            switch (data.Length)
+
+            HashInfo selectedInfo = null;
+            foreach (var info in Checksums.VersionHashInfoList)
             {
-                case MAIN_SAVE_SIZE:
+                var valid = true;
+                for (var i = 0; i < 4; i++)
+                {
+                    if (info.RevisionMagic[i] != BitConverter.ToUInt32(data, i * 4))
                     {
-                        Console.WriteLine("main.dat detected!");
-                        UpdateAndPrint(data, 0x000108, 0x00010C, 0x1D6D4C);
-                        UpdateAndPrint(data, 0x1D6E58, 0x1D6E5C, 0x323384);
-                        UpdateAndPrint(data, 0x4FA2E8, 0x4FA2EC, 0x035AC4);
-                        UpdateAndPrint(data, 0x52FDB0, 0x52FDB4, 0x03607C);
-                        UpdateAndPrint(data, 0x565F38, 0x565F3C, 0x035AC4);
-                        UpdateAndPrint(data, 0x59BA00, 0x59BA04, 0x03607C);
-                        UpdateAndPrint(data, 0x5D1B88, 0x5D1B8C, 0x035AC4);
-                        UpdateAndPrint(data, 0x607650, 0x607654, 0x03607C);
-                        UpdateAndPrint(data, 0x63D7D8, 0x63D7DC, 0x035AC4);
-                        UpdateAndPrint(data, 0x6732A0, 0x6732A4, 0x03607C);
-                        UpdateAndPrint(data, 0x6A9428, 0x6A942C, 0x035AC4);
-                        UpdateAndPrint(data, 0x6DEEF0, 0x6DEEF4, 0x03607C);
-                        UpdateAndPrint(data, 0x715078, 0x71507C, 0x035AC4);
-                        UpdateAndPrint(data, 0x74AB40, 0x74AB44, 0x03607C);
-                        UpdateAndPrint(data, 0x780CC8, 0x780CCC, 0x035AC4);
-                        UpdateAndPrint(data, 0x7B6790, 0x7B6794, 0x03607C);
-                        UpdateAndPrint(data, 0x7EC918, 0x7EC91C, 0x035AC4);
-                        UpdateAndPrint(data, 0x8223E0, 0x8223E4, 0x03607C);
-                        UpdateAndPrint(data, 0x858460, 0x858464, 0x2684D4);
+                        valid = false;
                         break;
                     }
+                }
+                if (valid)
+                {
+                    selectedInfo = info;
+                    break;
+                }
+            }
 
-                case PERSONAL_SAVE_SIZE:
+            if (selectedInfo != null)
+            {
+                Console.WriteLine($"Save File Revision {selectedInfo.RevisionId} detected!");
+                HashSet thisFileSet = selectedInfo[(uint)data.Length];
+                if (thisFileSet != null)
+                {
+                    Console.WriteLine($"{thisFileSet.FileName} detected!");
+                    foreach (var hashRegion in thisFileSet)
                     {
-                        Console.WriteLine("personal.dat detected!");
-                        UpdateAndPrint(data, 0x00108, 0x0010C, 0x35AC4);
-                        UpdateAndPrint(data, 0x35BD0, 0x35BD4, 0x3607C);
-                        break;
+                        UpdateAndPrint(data, hashRegion.HashOffset, hashRegion.BeginOffset, hashRegion.Size);
                     }
-
-                case POSTBOX_SAVE_SIZE:
-                    {
-                        Console.WriteLine("postbox.dat detected!");
-                        UpdateAndPrint(data, 0x100, 0x104, 0xB4447C);
-                        break;
-                    }
-
-                case PHOTO_STUDIO_ISLAND_SIZE:
-                    {
-                        Console.WriteLine("photo_studio_island.dat detected!");
-                        UpdateAndPrint(data, 0x100, 0x104, 0x262B0);
-                        break;
-                    }
-
-                case PROFILE_SIZE:
-                    {
-                        Console.WriteLine("profile.dat detected!");
-                        UpdateAndPrint(data, 0x100, 0x104, 0x69404);
-                        break;
-                    }
-
-                default:
-                    {
-                        Console.WriteLine("The file supplied isn't supported!");
-                        Console.WriteLine("Supported Files:\n\tmain.dat\n\tpersonal.dat\n\tpostbox.dat\n\tphoto_island_studio.dat\n\tprofile.dat");
-                        Console.WriteLine("Supplied files must first be decrypted via HorizonCrypt.");
-                        Console.ReadLine();
-                        return;
-                    }
+                }
+                else
+                {
+                    ShowErrorMessage();
+                    return;
+                }
+            }
+            else
+            {
+                ShowErrorMessage();
+                return;
             }
 
             File.WriteAllBytes(args[0], data);
@@ -98,10 +70,18 @@ namespace HorizonSummer.ConsoleApp
             Console.ReadLine();
         }
 
+        private static void ShowErrorMessage()
+        {
+            Console.WriteLine("The file supplied isn't supported!");
+            Console.WriteLine("Supported Files:\n\tmain.dat\n\tpersonal.dat\n\tpostbox.dat\n\tphoto_island_studio.dat\n\tprofile.dat");
+            Console.WriteLine("Supplied files must first be decrypted via HorizonCrypt.");
+            Console.ReadLine();
+        }
+
         private static void UpdateAndPrint(in byte[] data, int hashOffset, int startOffset, uint size)
         {
             var currHash = BitConverter.ToUInt32(data, hashOffset);
-            var genHash = Checksums.UpdateMurmur32(data, hashOffset, startOffset, size);
+            var genHash = Checksums.Murmur3.UpdateMurmur32(data, hashOffset, startOffset, size);
             Console.WriteLine($"Updated hash @ 0x{hashOffset:X} [0x{startOffset:X} - 0x{(startOffset + size):X}] from 0x{currHash:X8} to 0x{genHash:X8}");
         }
     }
